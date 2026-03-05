@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --accent: #e94560;
+  --accent-hover: #ff6b81;
+  --text-primary: #eaeaea;
+  --text-secondary: #a0a0b0;
+  --text-muted: #6b6b80;
+  --border: #2a2a40;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --error: #ef4444;
+  --bento-radius: 72px;
+  --bento-border: 14px;
+  --bento-inner-radius: 58px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f7;
+    --bg-tertiary: #e8e8ed;
+    --accent: #e94560;
+    --accent-hover: #d63851;
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --text-muted: #aeaeb2;
+    --border: #d2d2d7;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --error: #dc2626;
+  }
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background: transparent;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  outline: none;
+}
+
+html:focus, body:focus {
+  outline: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.studio-overlay {
+  background: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ─── Bento container: lacquered Japanese box ─── */
+
+.bento-container {
+  position: relative;
+}
+
+.add-btn-wrap,
+.add-btn-wrap * {
+  -webkit-app-region: no-drag !important;
+  cursor: pointer !important;
+}
+
+/* Lacquer sheen — top-left highlight like real lacquerware */
+.bento-container::before {
+  content: '';
+  position: absolute;
+  inset: var(--bento-border);
+  border-radius: var(--bento-inner-radius);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 25%,
+    transparent 50%
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Inner lip shadow — depth where the lid would sit */
+.bento-container::after {
+  content: '';
+  position: absolute;
+  inset: var(--bento-border);
+  border-radius: var(--bento-inner-radius);
+  box-shadow:
+    inset 0 3px 6px rgba(0, 0, 0, 0.25),
+    inset 0 -1px 3px rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ─── Tile: food compartment ─── */
+
+.tile {
+  animation: tile-enter 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.tile:hover {
+  z-index: 50;
+}
+
+/* Subtle gloss on tile top edge */
+.tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    transparent 100%
+  );
+  border-radius: 36px 36px 0 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Tile inset depth */
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 36px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes tile-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateX(30px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.015) translateX(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+}
+
+/* Stagger tile animations */
+.tile:nth-child(1) { animation-delay: 0ms; }
+.tile:nth-child(2) { animation-delay: 70ms; }
+.tile:nth-child(3) { animation-delay: 140ms; }
+.tile:nth-child(4) { animation-delay: 210ms; }
+.tile:nth-child(5) { animation-delay: 280ms; }
+.tile:nth-child(6) { animation-delay: 350ms; }
+.tile:nth-child(7) { animation-delay: 420ms; }
+.tile:nth-child(8) { animation-delay: 490ms; }
+
+/* ─── Buttons ─── */
+
+.action-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.5s;
+}
+
+.action-btn:hover::before {
+  left: 100%;
+}
+
+.run-button:active {
+  opacity: 0.85;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile, .bento-container {
+    animation: none;
+  }
+
+  .tile,
+  .tile *,
+  .bento-container,
+  .bento-container * {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+
+  .tile:hover {
+    transform: none;
+  }
+}

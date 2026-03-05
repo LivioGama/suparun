@@ -1,0 +1,32 @@
+{
+  "name": "@suparun/cli",
+  "version": "0.0.0",
+  "description": "Watchdog daemon for bun scripts — guards your port, auto-revives crashes, adopts external processes",
+  "bin": {
+    "suparun": "suparun.sh"
+  },
+  "files": [
+    "suparun.sh",
+    "vhost-proxy.ts",
+    "README.md"
+  ],
+  "keywords": [
+    "bun",
+    "watchdog",
+    "daemon",
+    "dev-server",
+    "process-manager",
+    "auto-restart",
+    "port-guard"
+  ],
+  "license": "MIT",
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LivioGama/suparun.git"
+  },
+  "homepage": "https://github.com/LivioGama/suparun"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "suparun",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @suparun/app dev",
+    "build": "bun run --filter @suparun/app build"
+  },
+  "version": ""
+}
