@@ -1,6 +1,6 @@
 {
   "name": "@suparun/cli",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Watchdog daemon for bun scripts — guards your port, auto-revives crashes, adopts external processes",
   "bin": {
     "suparun": "suparun.sh"
