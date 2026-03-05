@@ -18,7 +18,7 @@ set -euo pipefail
 #   - Survives IDE restarts, terminal crashes, build tools killing node
 # ═══════════════════════════════════════════════════════════════════
 
-readonly VERSION="0.0.1"
+readonly VERSION="0.0.0"
 readonly MAX_RAPID_CRASHES=50
 readonly INITIAL_BACKOFF=1
 readonly MAX_BACKOFF=10
@@ -256,12 +256,14 @@ vhost_register() {
   local final_name="$name"
   local suffix=2
   while true; do
-    local existing_pid
-    existing_pid=$(echo "$json" | bun -e "
-      const d = JSON.parse(require('fs').readFileSync('/dev/stdin','utf-8'));
-      const e = d['$final_name'];
-      console.log(e ? e.pid : '');
-    " 2>/dev/null || echo "")
+    local existing_pid=""
+    if [[ "$json" != "{}" ]]; then
+      existing_pid=$(echo "$json" | bun -e "
+        const d = JSON.parse(require('fs').readFileSync('/dev/stdin','utf-8'));
+        const e = d['$final_name'];
+        console.log(e ? e.pid : '');
+      " 2>/dev/null || echo "")
+    fi
 
     if [[ -z "$existing_pid" ]]; then
       break
@@ -279,15 +281,18 @@ vhost_register() {
   # Write entry
   local cwd
   cwd="$(pwd)"
+
+  # Ensure file exists before bun reads it
+  if [[ ! -f "$VHOST_FILE" ]]; then
+    echo '{}' > "$VHOST_FILE"
+  fi
+
   bun -e "
     const fs = require('fs');
     const d = JSON.parse(fs.readFileSync('$VHOST_FILE','utf-8').trim() || '{}');
     d['$final_name'] = { port: $port, pid: $pid, cwd: '$cwd' };
     fs.writeFileSync('$VHOST_FILE', JSON.stringify(d, null, 2));
-  " 2>/dev/null || {
-    # Fallback: create from scratch
-    echo "{\"$final_name\":{\"port\":$port,\"pid\":$pid,\"cwd\":\"$cwd\"}}" > "$VHOST_FILE"
-  }
+  " 2>/dev/null
 
   _vhost_unlock
   VHOST_NAME="$final_name"
