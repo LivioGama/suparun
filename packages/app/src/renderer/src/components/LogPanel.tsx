@@ -51,7 +51,7 @@ export const LogPanel: React.FC<Props> = ({ processId, onBack }) => {
 
   const handleOpenBrowser = () => {
     if (proc?.port) {
-      ipc.openInBrowser(proc.port)
+      ipc.openInBrowser(proc.port, proc.vhostName ?? undefined)
     }
   }
 

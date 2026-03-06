@@ -49,7 +49,7 @@ VHOST_FILE="$VHOST_DIR/vhosts.json"
 VHOST_LOCK="$VHOST_DIR/.lock"
 PROXY_PORT=2999
 PROXY_PID_FILE="$VHOST_DIR/proxy.pid"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || readlink "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
 
 # ─── Package manager detection ───────────────────────────────────
 
@@ -199,25 +199,48 @@ uninstall_shell_hook() {
 
 # ─── Vhost functions ─────────────────────────────────────────────
 
-generate_vhost_name() {
-  local name=""
+sanitize_name() {
+  echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//'
+}
 
-  # 1. From package.json "name" field
+generate_vhost_name() {
+  local app_name=""
+  local monorepo_name=""
+
+  # 1. App name from package.json "name" field
   if [[ -f "package.json" ]]; then
-    name=$(grep -m1 '"name"' package.json 2>/dev/null | sed 's/.*"name"[[:space:]]*:[[:space:]]*"//;s/".*//' || echo "")
-    # Strip @scope/ prefix
-    name="${name#@*/}"
+    app_name=$(grep -m1 '"name"' package.json 2>/dev/null | sed 's/.*"name"[[:space:]]*:[[:space:]]*"//;s/".*//' || echo "")
+    app_name="${app_name#@*/}"
   fi
 
   # 2. Fallback to directory basename
-  if [[ -z "$name" ]]; then
-    name="$(basename "$(pwd)")"
+  if [[ -z "$app_name" ]]; then
+    app_name="$(basename "$(pwd)")"
   fi
+  app_name=$(sanitize_name "$app_name")
 
-  # 3. Sanitize: lowercase, replace non-alnum with -, collapse, trim
-  name=$(echo "$name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//')
+  # 3. Detect monorepo: walk up to find root package.json with "workspaces"
+  local dir
+  dir="$(pwd)"
+  while true; do
+    local parent
+    parent="$(dirname "$dir")"
+    [[ "$parent" == "$dir" ]] && break
+    dir="$parent"
+    if [[ -f "$dir/package.json" ]] && grep -q '"workspaces"' "$dir/package.json" 2>/dev/null; then
+      monorepo_name=$(grep -m1 '"name"' "$dir/package.json" 2>/dev/null | sed 's/.*"name"[[:space:]]*:[[:space:]]*"//;s/".*//' || echo "")
+      monorepo_name="${monorepo_name#@*/}"
+      monorepo_name=$(sanitize_name "$monorepo_name")
+      break
+    fi
+  done
 
-  echo "$name"
+  # 4. Format: monoreponame.appname or just appname
+  if [[ -n "$monorepo_name" && "$monorepo_name" != "$app_name" ]]; then
+    echo "${monorepo_name}.${app_name}"
+  else
+    echo "$app_name"
+  fi
 }
 
 _vhost_lock() {
@@ -324,6 +347,11 @@ vhost_deregister() {
 }
 
 ensure_proxy_running() {
+  # If managed externally (e.g. Electron app), skip proxy spawn
+  if [[ -n "${SUPARUN_SKIP_PROXY:-}" ]]; then
+    return 0
+  fi
+
   # Check if proxy is already alive
   if [[ -f "$PROXY_PID_FILE" ]]; then
     local proxy_pid
@@ -341,10 +369,10 @@ ensure_proxy_running() {
     return 1
   fi
 
-  bun "$proxy_script" &>/dev/null &
+  nohup bun "$proxy_script" &>/dev/null &
   disown
   # Give it a moment to write PID file
-  sleep 0.3
+  sleep 0.5
   dim "vhost proxy started on port $PROXY_PORT"
 }
 
@@ -838,8 +866,9 @@ if is_server_script "$SCRIPT"; then
   if [[ "$VHOST_ENABLED" == true ]]; then
     local_vhost_name=$(generate_vhost_name)
     vhost_register "$local_vhost_name" "$PORT"
-    ensure_proxy_running
-    ok "http://${VHOST_NAME}.localhost:${PROXY_PORT} → localhost:${PORT}"
+    if ensure_proxy_running; then
+      ok "http://${VHOST_NAME}.localhost:${PROXY_PORT}"
+    fi
   fi
 
   run_watchdog "$PORT"
@@ -854,8 +883,9 @@ else
     if [[ "$VHOST_ENABLED" == true ]]; then
       local_vhost_name=$(generate_vhost_name)
       vhost_register "$local_vhost_name" "$PORT"
-      ensure_proxy_running
-      ok "http://${VHOST_NAME}.localhost:${PROXY_PORT} → localhost:${PORT}"
+      if ensure_proxy_running; then
+        ok "http://${VHOST_NAME}.localhost:${PROXY_PORT}"
+      fi
     fi
 
     run_watchdog "$PORT"

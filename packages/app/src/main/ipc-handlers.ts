@@ -97,9 +97,11 @@ export const registerIpcHandlers = ({
     history.clear()
   })
 
-  ipcMain.handle('open-in-browser', async (_event, port: number) => {
-    const url = `http://localhost:${port}`
-    console.log('[IPC] open-in-browser called with port:', port, '→', url)
+  ipcMain.handle('open-in-browser', async (_event, port: number, vhostName?: string) => {
+    const url = vhostName
+      ? `http://${vhostName}.localhost:2999`
+      : `http://localhost:${port}`
+    console.log('[IPC] open-in-browser called with port:', port, 'vhost:', vhostName, '→', url)
     try {
       await shell.openExternal(url)
     } catch (err) {
@@ -119,10 +121,20 @@ export const registerIpcHandlers = ({
   })
 
   ipcMain.handle('open-in-claude-code', async (_event, folderPath: string) => {
-    const tool = settings.get().terminalCodingTool || 'claude'
+    const s = settings.get()
+    const tool = s.terminalCodingTool || 'claude'
     const safePath = folderPath.replace(/"/g, '\\"')
     const tmpScript = `/tmp/suparun-${tool}-${Date.now()}.command`
-    exec(`printf '#!/bin/bash\\ncd "${safePath}" && exec ${tool}\\n' > "${tmpScript}" && chmod +x "${tmpScript}" && open "${tmpScript}"`)
+    
+    let command: string
+    if (tool === 'jimmy') {
+      const apiKey = s.jimmyApiKey || ''
+      command = `export JIMMY_API_KEY="${apiKey}" && npx jimmy`
+    } else {
+      command = tool
+    }
+    
+    exec(`printf '#!/bin/bash\\ncd "${safePath}" && exec ${command}\\n' > "${tmpScript}" && chmod +x "${tmpScript}" && open "${tmpScript}"`)
   })
 
   ipcMain.handle('add-folder', async (_event, folderPath: string) => {

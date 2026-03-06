@@ -1,0 +1,49 @@
+<p align="center">
+  <h1 align="center">⚡ suparun — Desktop App</h1>
+  <p align="center"><strong>Visual dashboard for the suparun watchdog daemon.</strong></p>
+  <p align="center">
+    <a href="https://www.npmjs.com/package/@suparun/app"><img src="https://img.shields.io/npm/v/@suparun/app.svg" alt="npm" /></a>
+    <a href="https://github.com/LivioGama/suparun/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
+    <img src="https://img.shields.io/badge/platform-macOS-lightgrey.svg" alt="Platform" />
+  </p>
+</p>
+
+---
+
+Optional Electron app that provides a visual interface for [suparun](https://www.npmjs.com/package/@suparun/cli). Installing this package also installs the CLI.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/LivioGama/suparun/main/packages/app/screenshot.webp" alt="Suparun GUI — project dashboard" width="800" />
+</p>
+
+## Features
+
+- One-click start/stop for all your projects
+- Live port status, uptime badges, and log viewer
+- Virtual host links (e.g. `myapp.localhost:2999`)
+- System tray with global shortcut (`Cmd+Shift+S`)
+- macOS crash notifications
+- Processes survive app restarts
+- Open in your favorite editor or AI coding tool
+
+## Install
+
+```bash
+bun add -g @suparun/app
+```
+
+This installs both the desktop app and the [`@suparun/cli`](https://www.npmjs.com/package/@suparun/cli) watchdog.
+
+## Usage
+
+Add project folders in the app, then click the play button to start any `dev` or `start` script with suparun's watchdog protection.
+
+## What is suparun?
+
+A **watchdog daemon** that guards your dev server port, auto-revives crashed processes, adopts servers started by other tools, and HTTP-pings to detect hung processes. Never restart `bun run dev` again.
+
+See the [CLI package](https://www.npmjs.com/package/@suparun/cli) for full documentation.
+
+## License
+
+[MIT](https://github.com/LivioGama/suparun/blob/main/LICENSE)

@@ -119,21 +119,29 @@ const WorkspaceRow: React.FC<{
         <UptimeBadge startedAt={proc.startedAt} />
       )}
       {proc?.port && isRunning && (
-        <button
-          onClick={() => {
-            console.log('[WorkspaceRow] port button clicked, port:', proc.port)
-            ipc.openInBrowser(proc.port ?? 3000)
-          }}
-          type="button"
-          className="text-xs px-2 py-0.5 rounded-md border-none cursor-pointer hover:bg-white/10"
-          style={{
-            background: 'rgba(74, 222, 128, 0.15)',
-            color: 'rgba(74, 222, 128, 0.9)',
-            transition: 'all 150ms ease'
-          }}
-        >
-          :{proc.port}
-        </button>
+        proc.status === 'running' ? (
+          <button
+            onClick={() => {
+              ipc.openInBrowser(proc.port ?? 3000, proc.vhostName ?? undefined)
+            }}
+            type="button"
+            className="text-xs px-2 py-0.5 rounded-md border-none cursor-pointer hover:bg-white/10"
+            style={{
+              background: 'rgba(74, 222, 128, 0.15)',
+              color: 'rgba(74, 222, 128, 0.9)',
+              transition: 'all 150ms ease'
+            }}
+          >
+            {proc.vhostName ? `${proc.vhostName}.localhost` : `:${proc.port}`}
+          </button>
+        ) : (
+          <span
+            className="text-xs px-2 py-0.5 rounded-md animate-pulse"
+            style={{ color: 'rgba(255, 255, 255, 0.3)' }}
+          >
+            starting...
+          </span>
+        )
       )}
       <div className="shrink-0" style={{ width: 85, position: 'relative' }}>
         <RunButton running={isRunning} scriptName={primaryScript} onRun={onStart} onStop={onStop} small />
@@ -279,19 +287,22 @@ export const ProjectTile: React.FC<Props> = ({ project, getProcessForProject, on
         {/* Open in Browser button — visible when any target has a running port */}
         {(() => {
           const apps = isMonorepo ? project.workspaces : [project]
-          const ports = apps
+          const targets = apps
             .map((app) => getProcessForProject(app.path))
             .filter((p): p is ManagedProcess =>
               !!p && (p.status === 'running' || p.status === 'starting' || p.status === 'restarting') && !!p.port
             )
-            .map((p) => p.port!)
-          if (ports.length === 0) return null
+          if (targets.length === 0) return null
+          const titleLabel = targets.length === 1
+            ? targets[0].vhostName
+              ? `Open ${targets[0].vhostName}.localhost:2999`
+              : `Open localhost:${targets[0].port}`
+            : `Open ${targets.length} targets in browser`
           return (
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                console.log('[ProjectTile] globe button clicked, ports:', ports)
-                for (const port of ports) ipc.openInBrowser(port)
+                for (const t of targets) ipc.openInBrowser(t.port!, t.vhostName ?? undefined)
               }}
               type="button"
               className="flex items-center justify-center w-8 h-8 rounded-full border-none cursor-pointer opacity-60 transition-opacity hover:opacity-100"
@@ -308,7 +319,7 @@ export const ProjectTile: React.FC<Props> = ({ project, getProcessForProject, on
                 e.currentTarget.style.background = 'rgba(74, 222, 128, 0.15)'
                 e.currentTarget.style.color = 'rgba(74, 222, 128, 0.9)'
               }}
-              title={ports.length === 1 ? `Open localhost:${ports[0]}` : `Open ${ports.length} targets in browser`}
+              title={titleLabel}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <title>Open in Browser</title>

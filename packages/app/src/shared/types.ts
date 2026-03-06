@@ -26,6 +26,7 @@ export interface ManagedProcess {
   status: ProcessStatus
   startedAt: number
   crashCount: number
+  vhostName: string | null
 }
 
 export type ProcessStatus = 'starting' | 'running' | 'crashed' | 'stopped' | 'restarting'
@@ -59,6 +60,8 @@ export interface Settings {
   savedFolders: string[]
   favoriteEditor: string
   terminalCodingTool: string
+  jimmyApiKey?: string
+  vhostEnabled: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -71,7 +74,9 @@ export const DEFAULT_SETTINGS: Settings = {
   maxLogLines: 5000,
   savedFolders: [],
   favoriteEditor: 'code',
-  terminalCodingTool: 'claude'
+  terminalCodingTool: 'claude',
+  jimmyApiKey: '',
+  vhostEnabled: true
 }
 
 export interface DetectedFolder {
@@ -95,7 +100,7 @@ export type IpcChannels = {
   'remove-history': (path: string) => void
   'clear-history': () => void
   'process-status-changed': (process: ManagedProcess) => void
-  'open-in-browser': (port: number) => void
+  'open-in-browser': (port: number, vhostName?: string) => void
   'add-folder': (folderPath: string) => Project[]
   'remove-folder': (folderPath: string) => void
   'open-folder-picker': () => string | null

@@ -38,8 +38,8 @@ const api = {
   clearHistory: (): Promise<void> =>
     ipcRenderer.invoke('clear-history'),
 
-  openInBrowser: (port: number): Promise<void> =>
-    ipcRenderer.invoke('open-in-browser', port),
+  openInBrowser: (port: number, vhostName?: string): Promise<void> =>
+    ipcRenderer.invoke('open-in-browser', port, vhostName),
 
   openInFinder: (folderPath: string): Promise<void> =>
     ipcRenderer.invoke('open-in-finder', folderPath),
