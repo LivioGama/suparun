@@ -69,7 +69,7 @@ const notFoundPage = () => {
   const entries = Object.entries(vhosts)
   const links = entries.length > 0
     ? entries.map(([name, e]) =>
-        `<li><a href="http://${name}.localhost:${PROXY_PORT}">${name}.localhost:${PROXY_PORT}</a> → localhost:${e.port}</li>`
+        `<li><a href="http://${name}.localhost:${PROXY_PORT}">${name}.localhost:${PROXY_PORT}</a></li>`
       ).join("\n")
     : "<li>No active vhosts</li>"
 
@@ -89,7 +89,7 @@ const resolveHost = (host: string | null): VhostEntry | null => {
   if (!host) return null
   // Strip port suffix
   const hostname = host.split(":")[0]
-  // Extract subdomain from *.localhost
+  // Extract subdomain(s) from *.localhost (supports dotted names like monorepo.app.localhost)
   const match = hostname.match(/^(.+)\.localhost$/)
   if (!match) return null
   return vhosts[match[1]] ?? null
