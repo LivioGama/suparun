@@ -107,6 +107,11 @@ export const SettingsView: React.FC<Props> = ({ onBack }) => {
             checked={settings.launchAtLogin}
             onChange={(v) => updateSettings({ launchAtLogin: v })}
           />
+          <ToggleRow
+            label="Virtual hosts (app.localhost:2999)"
+            checked={settings.vhostEnabled}
+            onChange={(v) => updateSettings({ vhostEnabled: v })}
+          />
         </section>
 
         {/* Max Crash Count */}
@@ -159,8 +164,25 @@ export const SettingsView: React.FC<Props> = ({ onBack }) => {
             <option value="opencode">OpenCode</option>
             <option value="codex">Codex</option>
             <option value="gemini">Gemini</option>
+            <option value="jimmy">Jimmy (llama3.1-8B)</option>
           </select>
         </section>
+
+        {settings.terminalCodingTool === 'jimmy' && (
+          <section className="flex flex-col gap-1">
+            <label className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Jimmy API Key
+            </label>
+            <input
+              type="password"
+              value={settings.jimmyApiKey || ''}
+              onChange={(e) => updateSettings({ jimmyApiKey: e.target.value })}
+              placeholder="Enter API key..."
+              className="w-full px-2 py-1 rounded text-xs border-none outline-none"
+              style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+            />
+          </section>
+        )}
 
         {/* Global Shortcut */}
         <section className="flex flex-col gap-1">

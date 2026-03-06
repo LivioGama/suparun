@@ -4,7 +4,7 @@ node_modules/
 .claude/
 
 # output
-out/
+out/."
 dist/
 *.tgz
 

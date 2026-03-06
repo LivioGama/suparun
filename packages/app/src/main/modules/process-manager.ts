@@ -66,6 +66,7 @@ export class ProcessManager extends EventEmitter {
   private shellPath: string = process.env.PATH || ''
   private disposed = false
   private pendingAdoptionPids = new Set<number>()
+  private proxyChild: ChildProcess | null = null
 
   constructor(settingsStore: SettingsStore) {
     super()
@@ -114,6 +115,9 @@ export class ProcessManager extends EventEmitter {
     }
 
     this.saveState()
+
+    // Ensure vhost proxy is running for reattached processes
+    if (this.processes.size > 0) this.ensureVhostProxy()
   }
 
   /** Start a script via the suparun CLI watchdog */
@@ -141,12 +145,16 @@ export class ProcessManager extends EventEmitter {
     // Pass --port to suparun so it guards the correct port (its own detect_port may miss PORT= syntax)
     // Resolve suparun binary — Electron GUI apps don't inherit shell PATH (NVM, Homebrew, etc.)
     const suparunBin = this.resolveSuparunBin()
-    log(`start: spawning ${suparunBin} ${scriptName} --port ${detectedPort} in ${projectPath}`)
-    const child = spawn('bash', [suparunBin, scriptName, '--port', String(detectedPort)], {
+    const args = [suparunBin, scriptName, '--port', String(detectedPort)]
+    if (!this.settingsStore.get().vhostEnabled) {
+      args.push('--no-vhost')
+    }
+    log(`start: spawning bash ${args.join(' ')} in ${projectPath}`)
+    const child = spawn('bash', args, {
       cwd: projectPath,
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: true,
-      env: { ...process.env, FORCE_COLOR: '1', PATH: this.shellPath }
+      env: { ...process.env, FORCE_COLOR: '1', PATH: this.shellPath, SUPARUN_SKIP_PROXY: '1' }
     })
 
     child.unref()
@@ -190,8 +198,8 @@ export class ProcessManager extends EventEmitter {
       this.processOutput(proc, data, 'stdout')
       const text = data.toString('utf-8')
       log(`stdout[${proc.projectName}:${proc.scriptName}]: ${text.substring(0, 200).replace(/\n/g, '\\n')}`)
-      // Detect port from suparun or framework output
-      if (proc.status === 'starting') {
+      // Detect port from suparun or framework output (skip vhost URLs like "app.localhost:2999")
+      if (proc.status === 'starting' && !text.match(/\w\.localhost:\d+/)) {
         // suparun: "guarding port 3000" / "Up on port 3000"
         // Next.js: "- Local: http://localhost:3001"
         // Vite: "Local:   http://localhost:5173/"
@@ -245,6 +253,9 @@ export class ProcessManager extends EventEmitter {
       if (proc.port) this.checkPortHealth(proc)
     }, HEALTH_CHECK_INTERVAL)
 
+    // Start vhost proxy if enabled
+    this.ensureVhostProxy()
+
     return this.toManagedProcess(proc)
   }
 
@@ -262,6 +273,7 @@ export class ProcessManager extends EventEmitter {
 
     this.processes.delete(processId)
     this.saveState()
+    this.stopVhostProxy()
   }
 
   restart = async (processId: string): Promise<ManagedProcess> => {
@@ -452,6 +464,55 @@ export class ProcessManager extends EventEmitter {
 
     log('resolveSuparunBin: not found, falling back to "suparun"')
     return 'suparun'
+  }
+
+  private ensureVhostProxy = (): void => {
+    if (!this.settingsStore.get().vhostEnabled) return
+    if (this.proxyChild && !this.proxyChild.killed) {
+      try { process.kill(this.proxyChild.pid!, 0); return } catch { /* dead */ }
+    }
+    // Also check PID file in case proxy is already running from CLI
+    const pidFile = join(homedir(), '.config', 'suparun', 'proxy.pid')
+    try {
+      const pid = parseInt(readFileSync(pidFile, 'utf-8').trim(), 10)
+      if (pid) { process.kill(pid, 0); log('ensureVhostProxy: already running (pid file)'); return }
+    } catch { /* not running */ }
+
+    // Find vhost-proxy.ts relative to suparun binary
+    const suparunBin = this.resolveSuparunBin()
+    let proxyScript: string
+    try {
+      const realBin = realpathSync(suparunBin)
+      proxyScript = join(realBin, '..', 'vhost-proxy.ts')
+    } catch {
+      proxyScript = join(suparunBin, '..', 'vhost-proxy.ts')
+    }
+    if (!existsSync(proxyScript)) {
+      log(`ensureVhostProxy: vhost-proxy.ts not found at ${proxyScript}`)
+      return
+    }
+
+    log(`ensureVhostProxy: starting ${proxyScript}`)
+    const bunPath = this.shellPath.split(':').map(d => join(d, 'bun')).find(p => existsSync(p)) || 'bun'
+    this.proxyChild = spawn(bunPath, [proxyScript], {
+      stdio: 'ignore',
+      detached: true,
+      env: { ...process.env, PATH: this.shellPath }
+    })
+    this.proxyChild.unref()
+    log(`ensureVhostProxy: spawned pid=${this.proxyChild.pid}`)
+  }
+
+  private stopVhostProxy = (): void => {
+    // Only stop if no running processes remain
+    const running = Array.from(this.processes.values()).filter(p => !this.isTerminal(p.status))
+    if (running.length > 0) return
+    const pidFile = join(homedir(), '.config', 'suparun', 'proxy.pid')
+    try {
+      const pid = parseInt(readFileSync(pidFile, 'utf-8').trim(), 10)
+      if (pid) { process.kill(pid, 'SIGTERM'); log(`stopVhostProxy: killed pid=${pid}`) }
+    } catch { /* already dead */ }
+    this.proxyChild = null
   }
 
   private findAvailablePort = (idealPort: number): number => {
@@ -707,6 +768,25 @@ export class ProcessManager extends EventEmitter {
     }
   }
 
+  private lookupVhostName = (port: number | null): string | null => {
+    if (!port || !this.settingsStore.get().vhostEnabled) return null
+    try {
+      const vhostFile = join(homedir(), '.config', 'suparun', 'vhosts.json')
+      const raw = readFileSync(vhostFile, 'utf-8')
+      const data = JSON.parse(raw)
+      for (const [name, entry] of Object.entries(data)) {
+        if ((entry as { port: number }).port === port) {
+          log(`lookupVhostName: port=${port} → ${name}`)
+          return name
+        }
+      }
+      log(`lookupVhostName: port=${port} not found in ${Object.keys(data).join(',')}`)
+    } catch (err) {
+      log(`lookupVhostName: error reading vhosts.json: ${String(err)}`)
+    }
+    return null
+  }
+
   private toManagedProcess = (proc: InternalProcess): ManagedProcess => ({
     id: proc.id,
     projectPath: proc.projectPath,
@@ -716,6 +796,7 @@ export class ProcessManager extends EventEmitter {
     port: proc.port,
     status: proc.status,
     startedAt: proc.startedAt,
-    crashCount: proc.crashCount
+    crashCount: proc.crashCount,
+    vhostName: this.lookupVhostName(proc.port)
   })
 }
