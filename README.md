@@ -53,11 +53,7 @@ Port is auto-detected from package.json scripts, `PORT` env, `.env` files, or fr
 
 ## 🖱️ Desktop App
 
-Optional **Electron app** with a visual dashboard. Installing it also installs the CLI:
-
-```bash
-bun add -g @suparun/app
-```
+Optional **Electron desktop app** with a visual dashboard. Download from [Releases](https://github.com/LivioGama/suparun/releases) or build from source:
 
 <p align="center">
   <img src="packages/app/screenshot.webp" alt="Suparun GUI — project dashboard" width="800" />

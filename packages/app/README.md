@@ -2,7 +2,6 @@
   <h1 align="center">⚡ suparun — Desktop App</h1>
   <p align="center"><strong>Visual dashboard for the suparun watchdog daemon.</strong></p>
   <p align="center">
-    <a href="https://www.npmjs.com/package/@suparun/app"><img src="https://img.shields.io/npm/v/@suparun/app.svg" alt="npm" /></a>
     <a href="https://github.com/LivioGama/suparun/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
     <img src="https://img.shields.io/badge/platform-macOS-lightgrey.svg" alt="Platform" />
   </p>
@@ -10,7 +9,7 @@
 
 ---
 
-Optional Electron app that provides a visual interface for [suparun](https://www.npmjs.com/package/@suparun/cli). Installing this package also installs the CLI.
+Optional Electron app that provides a visual interface for [suparun](https://www.npmjs.com/package/@suparun/cli).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/LivioGama/suparun/main/packages/app/screenshot.webp" alt="Suparun GUI — project dashboard" width="800" />
@@ -28,11 +27,15 @@ Optional Electron app that provides a visual interface for [suparun](https://www
 
 ## Install
 
+Download from [Releases](https://github.com/LivioGama/suparun/releases), or build from source:
+
 ```bash
-bun add -g @suparun/app
+git clone https://github.com/LivioGama/suparun.git
+cd suparun && bun install
+bun run --filter @suparun/app build:mac
 ```
 
-This installs both the desktop app and the [`@suparun/cli`](https://www.npmjs.com/package/@suparun/cli) watchdog.
+The CLI watchdog is available separately: `bun add -g @suparun/cli`
 
 ## Usage
 
