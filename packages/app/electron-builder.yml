@@ -6,6 +6,13 @@ directories:
 files:
   - out/**/*
   - assets/**/*
+  - cli/**/*
+extraResources:
+  - from: cli
+    to: cli
+    filter:
+      - suparun.sh
+      - vhost-proxy.ts
 mac:
   category: public.app-category.developer-tools
   target:

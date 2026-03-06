@@ -12,6 +12,8 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "prebuild:mac": "mkdir -p cli && cp ../cli/suparun.sh ../cli/vhost-proxy.ts cli/",
+    "build:mac": "electron-vite build && electron-builder --mac",
     "postinstall": "electron-builder install-app-deps && node scripts/patch-electron-name.js"
   },
   "dependencies": {

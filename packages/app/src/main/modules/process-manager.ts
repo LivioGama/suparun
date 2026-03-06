@@ -454,7 +454,17 @@ export class ProcessManager extends EventEmitter {
       } catch { continue }
     }
 
-    // 2. Bundled CLI (monorepo sibling)
+    // 2. Packaged app (extraResources)
+    if (process.resourcesPath) {
+      const packaged = join(process.resourcesPath, 'cli', 'suparun.sh')
+      if (existsSync(packaged)) {
+        log(`resolveSuparunBin: using packaged CLI at ${packaged}`)
+        this.suparunPath = packaged
+        return packaged
+      }
+    }
+
+    // 3. Bundled CLI (monorepo sibling — dev mode)
     const bundled = join(__dirname, '../../../cli/suparun.sh')
     if (existsSync(bundled)) {
       log(`resolveSuparunBin: using bundled CLI at ${bundled}`)
