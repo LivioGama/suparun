@@ -10,6 +10,8 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:electron": "electron-vite dev",
+    "dev:web": "bun run src/web/server.ts & BACKEND_PID=$! && vite --config vite.web.config.ts; kill $BACKEND_PID 2>/dev/null",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "prebuild:mac": "mkdir -p cli && cp ../cli/suparun.sh ../cli/vhost-proxy.ts cli/",

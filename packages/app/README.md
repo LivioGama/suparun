@@ -25,7 +25,9 @@ Optional Electron app that provides a visual interface for [suparun](https://www
 - Processes survive app restarts
 - Open in your favorite editor or AI coding tool
 
-## Install
+## Run Modes
+
+### Electron Desktop App (Recommended)
 
 Download from [Releases](https://github.com/LivioGama/suparun/releases), or build from source:
 
@@ -34,6 +36,22 @@ git clone https://github.com/LivioGama/suparun.git
 cd suparun && bun install
 bun run --filter @suparun/app build:mac
 ```
+
+For development:
+
+```bash
+bun run --filter @suparun/app dev:electron
+```
+
+### Web Browser Mode
+
+Run the same UI in your browser — no Electron required:
+
+```bash
+bun run --filter @suparun/app dev:web
+```
+
+Opens at `http://localhost:3008`. Backend API runs on port 3007.
 
 The CLI watchdog is available separately: `bun add -g @suparun/cli`
 
