@@ -454,7 +454,17 @@ export class ProcessManager extends EventEmitter {
       } catch { continue }
     }
 
-    // 2. Bundled CLI (monorepo sibling)
+    // 2. Packaged app (extraResources)
+    if (process.resourcesPath) {
+      const packaged = join(process.resourcesPath, 'cli', 'suparun.sh')
+      if (existsSync(packaged)) {
+        log(`resolveSuparunBin: using packaged CLI at ${packaged}`)
+        this.suparunPath = packaged
+        return packaged
+      }
+    }
+
+    // 3. Bundled CLI (monorepo sibling — dev mode)
     const bundled = join(__dirname, '../../../cli/suparun.sh')
     if (existsSync(bundled)) {
       log(`resolveSuparunBin: using bundled CLI at ${bundled}`)
@@ -495,12 +505,27 @@ export class ProcessManager extends EventEmitter {
     log(`ensureVhostProxy: starting ${proxyScript}`)
     const bunPath = this.shellPath.split(':').map(d => join(d, 'bun')).find(p => existsSync(p)) || 'bun'
     this.proxyChild = spawn(bunPath, [proxyScript], {
-      stdio: 'ignore',
-      detached: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, PATH: this.shellPath }
     })
-    this.proxyChild.unref()
-    log(`ensureVhostProxy: spawned pid=${this.proxyChild.pid}`)
+    const pid = this.proxyChild.pid
+    log(`ensureVhostProxy: spawned pid=${pid}`)
+
+    // Capture stderr for crash diagnostics
+    this.proxyChild.stderr?.on('data', (data: Buffer) => {
+      log(`vhostProxy[stderr]: ${data.toString().trim()}`)
+    })
+
+    // Auto-restart if proxy dies while we still have running processes
+    this.proxyChild.on('exit', (code) => {
+      log(`ensureVhostProxy: proxy pid=${pid} exited with code=${code}`)
+      this.proxyChild = null
+      const hasRunning = Array.from(this.processes.values()).some(p => !this.isTerminal(p.status))
+      if (hasRunning && !this.disposed) {
+        log('ensureVhostProxy: restarting proxy (processes still running)')
+        setTimeout(() => this.ensureVhostProxy(), 1000)
+      }
+    })
   }
 
   private stopVhostProxy = (): void => {

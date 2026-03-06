@@ -46,7 +46,6 @@ jobs:
             "
           }
           CLI_VERSION=$(bump packages/cli)
-          bump packages/app > /dev/null
 
           git add -A
           git commit -m "chore: bump versions (cli@$CLI_VERSION)"
@@ -55,10 +54,5 @@ jobs:
 
       - name: Publish @suparun/cli
         run: cd packages/cli && npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @suparun/app
-        run: cd packages/app && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

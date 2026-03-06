@@ -97,7 +97,8 @@ const resolveHost = (host: string | null): VhostEntry | null => {
 
 const server = Bun.serve({
   port: PROXY_PORT,
-  hostname: "0.0.0.0",
+  hostname: "::",
+  idleTimeout: 255,
 
   async fetch(req, server) {
     const entry = resolveHost(req.headers.get("host"))
@@ -115,8 +116,12 @@ const server = Bun.serve({
 
     try {
       const headers = new Headers(req.headers)
-      headers.set("X-Forwarded-Host", url.hostname)
+      headers.delete("host")
+      headers.set("X-Forwarded-Host", req.headers.get("host") || url.hostname)
       headers.set("X-Forwarded-Proto", "http")
+
+      // Remove accept-encoding so backend sends uncompressed (Bun auto-decompresses anyway)
+      headers.delete("accept-encoding")
 
       const resp = await fetch(target, {
         method: req.method,
@@ -125,10 +130,16 @@ const server = Bun.serve({
         redirect: "manual",
       })
 
+      // Copy headers but strip content-encoding/content-length (body may differ after proxy)
+      const respHeaders = new Headers(resp.headers)
+      respHeaders.delete("content-encoding")
+      respHeaders.delete("content-length")
+      respHeaders.delete("transfer-encoding")
+
       return new Response(resp.body, {
         status: resp.status,
         statusText: resp.statusText,
-        headers: resp.headers,
+        headers: respHeaders,
       })
     } catch {
       return new Response(`Backend localhost:${entry.port} unreachable`, { status: 502 })

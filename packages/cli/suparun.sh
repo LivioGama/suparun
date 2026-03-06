@@ -235,9 +235,9 @@ generate_vhost_name() {
     fi
   done
 
-  # 4. Format: monoreponame.appname or just appname
+  # 4. Format: monoreponame-appname or just appname (single-level subdomain for browser compat)
   if [[ -n "$monorepo_name" && "$monorepo_name" != "$app_name" ]]; then
-    echo "${monorepo_name}.${app_name}"
+    echo "${monorepo_name}-${app_name}"
   else
     echo "$app_name"
   fi

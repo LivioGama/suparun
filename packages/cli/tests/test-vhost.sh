@@ -66,6 +66,7 @@ extract_fn() {
 
 VHOST_NAME=""
 
+eval "$(extract_fn sanitize_name)"
 eval "$(extract_fn generate_vhost_name)"
 eval "$(extract_fn _vhost_lock)"
 eval "$(extract_fn _vhost_unlock)"
